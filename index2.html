@@ -19,9 +19,9 @@
                 <h3>Escreva seu Briefing</h3>
                 <input type="text" id="task-name" placeholder="Adicione dúvidas a pesquisar, metas semanais e outros (Ex: Fazer 3 provas testes, O que são reformas?, buscar conteúdo sobre Macro e Micro)" >
                 <select id="task-priority">
-                    <option value="high">High Priority</option>
-                    <option value="medium">Medium Priority</option>
-                    <option value="low">Low Priority</option>
+                    <option value="high">Alta Prioridade</option>
+                    <option value="medium">Média Prioridade</option>
+                    <option value="low">Baixa Prioridade</option>
                 </select>
                 <button id="add-task-btn">Add Task</button>
             </div>
@@ -34,12 +34,7 @@
             <div class="weekly-tasks">
                 <h2>Atividades Semanais</h2>
                 <div class="week">
-                    <div class="day" data-day="Sunday">
-                        <h3>Domingo</h3>
-                        <ul class="tasks" id="tasks-sunday"></ul>
-                        <input type="text" placeholder="Adicione o que estudar (Ex: Reforma Tributária)">
-                        <button>Add</button>
-                    </div>
+                   
                     <div class="day" data-day="Monday">
                         <h3>Segunda-Feira</h3>
                         <ul class="tasks" id="tasks-monday"></ul>
@@ -74,6 +69,13 @@
                         <h3>Sábado</h3>
                         <ul class="tasks" id="tasks-saturday"></ul>
                         <input type="text" placeholder="Adicione o que estudar">
+                        <button>Add</button>
+                    </div>
+
+                       <div class="day" data-day="Sunday">
+                        <h3>Domingo</h3>
+                        <ul class="tasks" id="tasks-sunday"></ul>
+                        <input type="text" placeholder="Adicione o que estudar (Ex: Reforma Tributária)">
                         <button>Add</button>
                     </div>
                 </div>
