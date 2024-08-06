@@ -3,19 +3,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskPriority = document.getElementById('task-priority');
     const addTaskBtn = document.getElementById('add-task-btn');
 
-    // Função para salvar as tarefas diárias no localStorage
+    // Configuração do Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyCPpZ8s7gBTVYcmz78hMX0XqXHsHNMx0x8",
+        authDomain: "study-rm.firebaseapp.com",
+        projectId: "study-rm",
+        storageBucket: "study-rm.appspot.com",
+        messagingSenderId: "466457514347",
+        appId: "1:466457514347:web:82d72759a048e1cea23c2e",
+        measurementId: "G-3TRGS18QQJ"
+    };
+
+    // Inicializa o Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Função para salvar as tarefas diárias no Firestore
     function saveTasks() {
         const tasks = Array.from(document.querySelectorAll('#tasks li')).map(taskItem => {
             return {
                 name: taskItem.querySelector('span').textContent,
-                priority: taskItem.classList[0],
+                priority: taskItem.classList.contains('high') ? 'high' : (taskItem.classList.contains('medium') ? 'medium' : 'low'),
                 completed: taskItem.classList.contains('completed')
             };
         });
-        localStorage.setItem('tasks', JSON.stringify(tasks));
+
+        const userId = firebase.auth().currentUser.uid;
+        db.collection('users').doc(userId).set({ tasks }, { merge: true })
+            .catch(error => console.error("Error saving tasks: ", error));
     }
 
-    // Função para salvar as tarefas semanais no localStorage
+    // Função para salvar as tarefas semanais no Firestore
     function saveWeeklyTasks() {
         const weeklyTasks = {};
         document.querySelectorAll('.weekly-tasks .day').forEach(day => {
@@ -27,25 +46,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             });
         });
-        localStorage.setItem('weeklyTasks', JSON.stringify(weeklyTasks));
+
+        const userId = firebase.auth().currentUser.uid;
+        db.collection('users').doc(userId).set({ weeklyTasks }, { merge: true })
+            .catch(error => console.error("Error saving weekly tasks: ", error));
     }
 
-    // Função para carregar as tarefas diárias do localStorage
+    // Função para carregar as tarefas diárias do Firestore
     function loadTasks() {
-        const savedTasks = JSON.parse(localStorage.getItem('tasks')) || [];
-        savedTasks.forEach(task => {
-            addTask(task.name, task.priority, task.completed);
-        });
+        const userId = firebase.auth().currentUser.uid;
+        db.collection('users').doc(userId).get()
+            .then(doc => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    const savedTasks = data.tasks || [];
+                    savedTasks.forEach(task => {
+                        addTask(task.name, task.priority, task.completed);
+                    });
+                }
+            })
+            .catch(error => console.error("Error loading tasks: ", error));
     }
 
-    // Função para carregar as tarefas semanais do localStorage
+    // Função para carregar as tarefas semanais do Firestore
     function loadWeeklyTasks() {
-        const savedWeeklyTasks = JSON.parse(localStorage.getItem('weeklyTasks')) || {};
-        for (const [day, tasks] of Object.entries(savedWeeklyTasks)) {
-            tasks.forEach(task => {
-                addWeeklyTask(day.charAt(0).toUpperCase() + day.slice(1), task.name, task.completed);
-            });
-        }
+        const userId = firebase.auth().currentUser.uid;
+        db.collection('users').doc(userId).get()
+            .then(doc => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    const savedWeeklyTasks = data.weeklyTasks || {};
+                    for (const [day, tasks] of Object.entries(savedWeeklyTasks)) {
+                        tasks.forEach(task => {
+                            addWeeklyTask(day.charAt(0).toUpperCase() + day.slice(1), task.name, task.completed);
+                        });
+                    }
+                }
+            })
+            .catch(error => console.error("Error loading weekly tasks: ", error));
     }
 
     // Função para criar um elemento de tarefa
@@ -125,6 +163,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Função para atualizar a posição das tarefas
+    function updateTaskPositions() {
+        saveTasks();
+        saveWeeklyTasks();
+    }
+
     // Evento de clique para adicionar uma nova tarefa diária
     addTaskBtn.addEventListener('click', () => {
         const taskName = taskInput.value.trim();
@@ -157,11 +201,12 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                const taskName = e.target.value.trim();
+                const taskName = input.value.trim();
+                const day = input.parentElement.dataset.day;
+
                 if (taskName) {
-                    const dayContainer = e.target.closest('.day');
-                    addWeeklyTask(dayContainer.dataset.day, taskName);
-                    e.target.value = '';
+                    addWeeklyTask(day, taskName);
+                    input.value = '';
                     saveWeeklyTasks();
                 }
             }
@@ -202,12 +247,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (draggingItem) {
                 day.querySelector('ul').appendChild(draggingItem);
                 day.classList.remove('drag-over');
-                saveWeeklyTasks();
+                updateTaskPositions();
             }
         });
     });
 
-    // Carregar tarefas ao iniciar a página
-    loadTasks();
-    loadWeeklyTasks();
+    // Carregar tarefas ao iniciar
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            loadTasks();
+            loadWeeklyTasks();
+        }
+    });
 });
